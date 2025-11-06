@@ -9,8 +9,10 @@ The Ocean AI POC enables researchers and sustainability professionals to query o
 - **Ingests** PDF and text documents about ocean sustainability, seagrass restoration, marine biodiversity, etc.
 - **Chunks** documents and creates vector embeddings using OpenAI's text-embedding-3-small
 - **Stores** embeddings in PostgreSQL with pgvector for efficient similarity search
-- **Provides** both web UI (Streamlit) and command-line interfaces for querying
+- **Provides** both web UI (Streamlit) and command-line interfaces for querying and document upload
 - **Generates** contextual answers using OpenAI GPT-4o-mini with retrieved document context
+
+For detailed information about the system architecture and how the RAG pipeline works, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Requirements
 
@@ -96,7 +98,12 @@ This creates the `documents` and `chunks` tables with proper vector indexing.
 
 ### Document Ingestion
 
-Add documents to your knowledge base:
+Add documents to your knowledge base using either the web interface or command line:
+
+#### Web Upload (Recommended for most users)
+Use the "Upload Documents" tab in the Streamlit web interface for an intuitive drag-and-drop experience with progress tracking and batch upload support.
+
+#### Command Line Interface
 
 #### Single File
 ```bash
@@ -135,13 +142,21 @@ streamlit run app_streamlit.py
 The interface will be available at `http://localhost:8501`
 
 **Web UI Features:**
-- Natural language question input
-- Real-time similarity search
-- Adjustable similarity thresholds
-- Document type and geographic filters
-- Source attribution with similarity scores
-- Query history
-- Example questions to get started
+- **Query Tab:**
+  - Natural language question input
+  - Real-time similarity search
+  - Adjustable similarity thresholds
+  - Document type and geographic filters
+  - Source attribution with similarity scores
+  - Query history
+  - Example questions to get started
+- **Upload Documents Tab:**
+  - Drag-and-drop file upload interface
+  - Support for PDF, TXT, and MD files
+  - Batch upload capability
+  - Organization metadata input
+  - Real-time processing progress
+  - Automatic duplicate detection
 
 ### Command Line Interface
 
@@ -343,7 +358,8 @@ print(f"Sources: {len(result['sources'])}")
 
 ## License
 
-[Add your license here]
+Published under the GNU General Public License v3.0. 
+For details, see the LICENSE file.
 
 ## Support
 

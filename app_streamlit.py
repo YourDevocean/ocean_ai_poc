@@ -10,16 +10,21 @@ import sys
 import os
 from typing import Dict, Any, Optional
 import time
+import tempfile
+from pathlib import Path
 
 # Add the current directory to Python path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from rag_retriever import OceanRAGRetriever
+from ingest import DocumentIngestor
 
 def init_session_state():
     """Initialize Streamlit session state variables"""
     if 'retriever' not in st.session_state:
         st.session_state.retriever = None
+    if 'ingestor' not in st.session_state:
+        st.session_state.ingestor = None
     if 'query_history' not in st.session_state:
         st.session_state.query_history = []
     if 'config_loaded' not in st.session_state:
@@ -29,6 +34,7 @@ def load_retriever(config_path: str) -> bool:
     """Load the RAG retriever with error handling"""
     try:
         st.session_state.retriever = OceanRAGRetriever(config_path)
+        st.session_state.ingestor = DocumentIngestor(config_path)
         st.session_state.config_loaded = True
         return True
     except Exception as e:
@@ -85,6 +91,80 @@ def display_query_result(result: Dict[str, Any]):
         with st.expander("🔍 Retrieved Context"):
             st.text(result['context'])
 
+def upload_interface():
+    """Document upload interface"""
+    st.header("📁 Upload Documents")
+    st.markdown("Upload PDF or text files to add them to the knowledge base.")
+    
+    if not st.session_state.config_loaded:
+        st.warning("⚠️ Please load configuration first from the Query tab.")
+        return
+    
+    # Organization input
+    organization = st.text_input(
+        "Organization", 
+        placeholder="e.g., Marine Research Institute",
+        help="The organization that created or published this document"
+    )
+    
+    # File upload
+    uploaded_files = st.file_uploader(
+        "Choose files to upload",
+        type=['pdf', 'txt', 'md'],
+        accept_multiple_files=True,
+        help="Supported formats: PDF, TXT, MD"
+    )
+    
+    if uploaded_files and st.button("🚀 Upload and Process", type="primary"):
+        if not organization.strip():
+            st.error("Please enter an organization name.")
+            return
+            
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        successful_uploads = 0
+        total_files = len(uploaded_files)
+        
+        for i, uploaded_file in enumerate(uploaded_files):
+            status_text.text(f"Processing {uploaded_file.name}...")
+            
+            # Save uploaded file to temporary location
+            with tempfile.NamedTemporaryFile(delete=False, suffix=Path(uploaded_file.name).suffix) as tmp_file:
+                tmp_file.write(uploaded_file.getvalue())
+                tmp_file_path = tmp_file.name
+            
+            try:
+                # Check if file already exists
+                file_size = len(uploaded_file.getvalue())
+                if st.session_state.ingestor.document_exists(uploaded_file.name, file_size):
+                    st.warning(f"⚠️ Document '{uploaded_file.name}' already exists in the database.")
+                else:
+                    # Ingest the document with original filename
+                    if st.session_state.ingestor.ingest_document(tmp_file_path, organization, uploaded_file.name):
+                        successful_uploads += 1
+                        st.success(f"✅ Successfully processed '{uploaded_file.name}'")
+                    else:
+                        st.error(f"❌ Failed to process '{uploaded_file.name}'")
+                
+            except Exception as e:
+                st.error(f"❌ Error processing '{uploaded_file.name}': {e}")
+            
+            finally:
+                # Clean up temporary file
+                try:
+                    os.unlink(tmp_file_path)
+                except:
+                    pass
+            
+            # Update progress
+            progress_bar.progress((i + 1) / total_files)
+        
+        status_text.text(f"Upload complete: {successful_uploads}/{total_files} files processed successfully")
+        
+        if successful_uploads > 0:
+            st.balloons()
+
 def main_interface():
     """Main Streamlit interface"""
     st.set_page_config(
@@ -97,6 +177,9 @@ def main_interface():
     # Header
     st.title("🌊 Ocean AI POC")
     st.markdown("*Sustainable ocean research powered by AI*")
+    
+    # Create tabs
+    tab1, tab2 = st.tabs(["🔍 Query", "📁 Upload Documents"])
     
     # Sidebar configuration
     with st.sidebar:
@@ -115,7 +198,25 @@ def main_interface():
             else:
                 st.error("❌ Failed to load configuration")
         
-        # Query parameters
+        # Status indicator
+        if st.session_state.config_loaded:
+            st.success("🟢 Configuration Loaded")
+        else:
+            st.error("🔴 Configuration Not Loaded")
+    
+    # Query tab
+    with tab1:
+        query_interface()
+    
+    # Upload tab
+    with tab2:
+        upload_interface()
+
+def query_interface():
+    """Query interface within the query tab"""
+    
+    # Sidebar query parameters (only show when on query tab)
+    with st.sidebar:
         st.header("🎛️ Query Parameters")
         max_results = st.slider("Max Results", 1, 10, 5)
         similarity_threshold = st.slider("Similarity Threshold", 0.0, 1.0, 0.4, 0.1)
@@ -170,8 +271,8 @@ def main_interface():
     # Query execution
     col1, col2 = st.columns([1, 4])
     with col1:
-        if st.button("🔍 Search", type="primary", disabled=not question.strip()):
-            if question.strip():
+        if st.button("🔍 Search", type="primary", disabled=not (question and question.strip())):
+            if question and question.strip():
                 with st.spinner("🤔 Thinking..."):
                     try:
                         result = st.session_state.retriever.query(
@@ -199,7 +300,7 @@ def main_interface():
     with col2:
         if st.button("🗑️ Clear"):
             st.session_state.current_question = ""
-            st.experimental_rerun()
+            st.rerun()
     
     # Query history
     if st.session_state.query_history:

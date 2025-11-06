@@ -1,0 +1,37 @@
+{
+    "python.defaultInterpreterPath": "./.venv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    "terminal.integrated.env.osx": {
+        "PATH": "${workspaceFolder}/.venv/bin:${env:PATH}"
+    },
+    "terminal.integrated.env.linux": {
+        "PATH": "${workspaceFolder}/.venv/bin:${env:PATH}"
+    },
+    "terminal.integrated.profiles.osx": {
+        "zsh (venv)": {
+            "path": "zsh",
+            "args": ["-c", "source ${workspaceFolder}/activate && exec zsh"]
+        },
+        "bash (venv)": {
+            "path": "bash",
+            "args": ["-c", "source ${workspaceFolder}/activate && exec bash"]
+        }
+    },
+    "terminal.integrated.profiles.linux": {
+        "zsh (venv)": {
+            "path": "zsh",
+            "args": ["-c", "source ${workspaceFolder}/activate && exec zsh"]
+        },
+        "bash (venv)": {
+            "path": "bash",
+            "args": ["-c", "source ${workspaceFolder}/activate && exec bash"]
+        }
+    },
+    "terminal.integrated.defaultProfile.osx": "zsh (venv)",
+    "terminal.integrated.defaultProfile.linux": "zsh (venv)",
+    "python.envFile": "${workspaceFolder}/.env",
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}"
+    ]
+}

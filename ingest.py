@@ -181,7 +181,7 @@ class DocumentIngestor:
         cursor.close()
         conn.close()
     
-    def ingest_document(self, file_path: str, organization: str = None) -> bool:
+    def ingest_document(self, file_path: str, organization: str = None, original_filename: str = None) -> bool:
         """Ingest a single document"""
         file_path = Path(file_path)
         
@@ -189,7 +189,8 @@ class DocumentIngestor:
             print(f"File not found: {file_path}")
             return False
         
-        filename = file_path.name
+        # Use original filename if provided, otherwise use the file path name
+        filename = original_filename if original_filename else file_path.name
         file_size = file_path.stat().st_size
         
         # Check if document already exists
